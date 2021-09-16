@@ -7,7 +7,7 @@ setup(
     author='teddylee777',
     author_email='teddylee777@gmail.com',
     url='https://github.com/teddylee777/datasets',
-    install_requires=['tqdm'],
+    install_requires=['tqdm', 'pandas'],
     packages=find_packages(exclude=[]),
     keywords=['teddynote', 'teddylee777', 'python datasets', 'python tutorial', 'machine learning', 'deep learning'],
     python_requires='>=3',
