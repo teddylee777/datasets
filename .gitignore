@@ -4,6 +4,7 @@
 
 ### Custom ###
 tmp/
+.idea/
 
 ### JupyterNotebooks ###
 # gitignore template for Jupyter Notebooks
