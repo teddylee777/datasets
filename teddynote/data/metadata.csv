@@ -1,4 +1,11 @@
 ﻿id,filename,file_desc,url
 0,house_price.csv,민간 아파트 동향 데이터,https://www.dropbox.com/s/pa9n3f2ro6iugt6/house_price.csv?dl=1
-1,seoul_transportation.xlsx,서울시 대중교통 데이터,https://www.dropbox.com/s/eowukxhclu5xnnl/seoul_population.csv?dl=1
+1,seoul_transportation.xlsx,서울시 대중교통 데이터,https://www.dropbox.com/s/vgozcnn705stb2n/seoul_transportation.xlsx?dl=1
 2,seoul_population.csv,서울시 주민등록 인구 데이터,https://www.dropbox.com/s/eowukxhclu5xnnl/seoul_population.csv?dl=1
+3,file_sample.xlsx,,https://www.dropbox.com/s/e4eal2c99g1rkeb/mySUNI.xlsx?dl=1
+3,file_sample1.csv,,https://www.dropbox.com/s/ihfh3280g0xjso1/mySUNI_1.csv?dl=1
+3,file_sample2.csv,,https://www.dropbox.com/s/1kmfoubkifblyeq/mySUNI_2.csv?dl=1
+3,file_sample3.csv,,https://www.dropbox.com/s/nlz7r55mq2b38pb/mySUNI_3.csv?dl=1
+4,seoul_bicycle.csv,,https://www.dropbox.com/s/qwakj7wc20iosoc/seoul_bicycle.csv?dl=1
+5,gas_first_2019.csv,,https://www.dropbox.com/s/lj6u90nkuhqniio/gas_first_2019.csv?dl=1
+5,gas_second_2019.csv,,https://www.dropbox.com/s/eqwl49o4qyjizd5/gas_second_2019.csv?dl=1
