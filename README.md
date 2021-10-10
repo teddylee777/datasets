@@ -7,3 +7,11 @@
 ```bash
 pip install teddynote
 ```
+
+### 데이터셋 리스트 확인
+
+```bash
+from teddynote import dataset
+
+dataset.list_all()
+```
