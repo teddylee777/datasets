@@ -10,7 +10,7 @@ pip install teddynote
 
 ### 데이터셋 리스트 확인
 
-```bash
+```python
 from teddynote import dataset
 
 dataset.list_all()
