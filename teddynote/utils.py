@@ -137,6 +137,9 @@ def convert_ipynb(from_file, to_file=None, folder_path=None, post_fix='-변환.i
             to_file = to_file[:-6] + post_fix
         else:
             to_file = from_file[:-6] + post_fix
+    
+    # 파일이름 저장 (메타데이터에 적용)
+    f_name = to_file.split('.')[0]
 
     if folder_path is not None:
         # 폴더 경로 없으면 생성
@@ -144,9 +147,6 @@ def convert_ipynb(from_file, to_file=None, folder_path=None, post_fix='-변환.i
             os.mkdir(folder_path)
         # 폴더 경로를 포함한 파일 경로 생성
         to_file = os.path.join(folder_path, os.path.basename(to_file))
-
-    # 파일이름 저장 (메타데이터에 적용)
-    f_name = to_file.split('.')[0]
 
     # 메타데이터
     colab = y['metadata'].get('colab')
