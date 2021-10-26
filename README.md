@@ -34,5 +34,5 @@ python setup.py bdist_wheel
 
 > whl 파일 업로드
 ```bash
-twine upload dist/mySUNI-X.X.X-py3-none-any.whl
+twine upload dist/teddynote-X.X.X-py3-none-any.whl
 ```
