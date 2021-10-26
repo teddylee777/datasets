@@ -2,12 +2,12 @@ from setuptools import setup, find_packages
 
 setup(
     name='teddynote',
-    version='0.0.1',
+    version='0.0.2',
     description='datasets and tutorial package made and maintained by TeddyNote',
     author='teddylee777',
     author_email='teddylee777@gmail.com',
     url='https://github.com/teddylee777/datasets',
-    install_requires=['tqdm', 'pandas'],
+    install_requires=['tqdm', 'pandas', 'scikit-learn'],
     packages=find_packages(exclude=[]),
     keywords=['teddynote', 'teddylee777', 'python datasets', 'python tutorial', 'machine learning', 'deep learning'],
     python_requires='>=3',
