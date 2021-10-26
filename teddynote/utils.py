@@ -17,12 +17,13 @@ validation_msgs =  [
 ]
 
 
-def convert_ipynb(from_file, to_file=None, folder_path=None, post_fix='-변환.ipynb'):
+def convert_ipynb(from_file, to_file=None, folder_path=None, post_fix='-변환.ipynb', remain_code=False):
     """
     from_file: 읽어 올 해설 파일 이름
     to_file: 변환 후 내보낼 파일 명, None
     folder_path: 기본 값 None. None이 아니면 해당 폴더경로에 생성
     post_fix: 파일 뒤에 붙혀줌. 그대로 두면 -변환 이라고 postfix 가 붙어서 자동 생성
+    remain_code: default: False. True 적용시 # 코드입력 Cell의 코드를 살려둠
     
     (예시)
     - 폴더 지정 안하는 경우, 같은 경로에 생성
@@ -33,7 +34,7 @@ def convert_ipynb(from_file, to_file=None, folder_path=None, post_fix='-변환.i
     convert_ipynb(filename, folder_path='00-Workshop/변환', post_fix='.ipynb')
     """
     global code_input_msgs, validation_msgs
-    
+
     try:
         f = codecs.open(from_file, 'r')
         source = f.read()
@@ -63,7 +64,7 @@ def convert_ipynb(from_file, to_file=None, folder_path=None, post_fix='-변환.i
                     valid_flag = True
                     break
 
-        if flag:
+        if flag and not remain_code:
             new_text = []
             for x2 in x['source']:
                 if x2.startswith('#'):
@@ -165,10 +166,11 @@ def convert_ipynb(from_file, to_file=None, folder_path=None, post_fix='-변환.i
 
 # folder_path: 변환할 폴더 경로
 # new_folder_name: 기본값은 /자동변환. 새로 생성할 폴더명
-def convert_ipynb_folder(folder_path, new_folder_name='변환', post_fix='-변환.ipynb'):
+def convert_ipynb_folder(folder_path, new_folder_name='변환', post_fix='-변환.ipynb', remain_code=False):
     """
     folder_path: 변환할 폴더 경로
     new_folder_name: 기본값은 /자동변환. 새로 생성할 폴더명
+    remain_code: default: False. True 적용시 # 코드입력 Cell의 코드를 살려둠
     
     (예시)
     convert_ipynb_folder(folder_path, new_folder_name='실습폴더', post_fix='.ipynb')
@@ -184,7 +186,7 @@ def convert_ipynb_folder(folder_path, new_folder_name='변환', post_fix='-변�
     ipynb_list = [os.path.join(folder_path, f) for f in os.listdir(folder_path) if f.endswith('ipynb')]
 
     for file in ipynb_list:
-        convert_ipynb(file, folder_path=new_folder_path, post_fix=post_fix)
+        convert_ipynb(file, folder_path=new_folder_path, post_fix=post_fix, remain_code=remain_code)
 
 
 ### Util 함수
