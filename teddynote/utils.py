@@ -32,6 +32,8 @@ def convert_ipynb(from_file, to_file=None, folder_path=None, post_fix='-변환.i
     - 아무 post_fix 없이 생성
     convert_ipynb(filename, folder_path='00-Workshop/변환', post_fix='.ipynb')
     """
+    global code_input_msgs, validation_msgs
+    
     try:
         f = codecs.open(from_file, 'r')
         source = f.read()
