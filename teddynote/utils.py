@@ -140,6 +140,7 @@ def convert_ipynb(from_file, to_file=None, folder_path=None, post_fix='-변환.i
     
     # 파일이름 저장 (메타데이터에 적용)
     f_name = to_file.split('.')[0]
+    f_name = f_name.split('/')[-1]
 
     if folder_path is not None:
         # 폴더 경로 없으면 생성
