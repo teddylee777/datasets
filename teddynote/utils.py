@@ -90,8 +90,10 @@ def convert_ipynb(from_file, to_file=None, folder_path=None, post_fix='-변환.i
                                         clear_flag = True
                                         break
                                     elif 'text/plain' == key2:
-                                        idx.append(i + add_cnt)
                                         plain_text = value['text/plain']
+                                        if len(plain_text) > 0 and plain_text[0].startswith('<Figure'):
+                                            continue
+                                        idx.append(i + add_cnt)
                                         plain_text[0] = '<pre>' + plain_text[0]
                                         plain_text[len(plain_text)-1] = plain_text[len(plain_text)-1] + '</pre>'
                                         plain_text.insert(0, '<p><strong>[출력 결과]</strong></p>')
