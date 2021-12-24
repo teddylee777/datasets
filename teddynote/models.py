@@ -87,7 +87,7 @@ class OptunaParamGrid():
         return p
 
 
-class LGBMBaseOptuna():
+class BaseOptuna():
 
     def __init__(self):
         self.param_grid = OptunaParamGrid()
@@ -146,7 +146,7 @@ class LGBMBaseOptuna():
         return self.study.best_trial.params
 
 
-class LGBMClassifierOptuna(LGBMBaseOptuna):
+class LGBMClassifierOptuna(BaseOptuna):
 
     def get_feval(self, num_classes, metrics, average='weighted'):
         def feval(y_pred, dataset):
@@ -204,19 +204,7 @@ class LGBMClassifierOptuna(LGBMBaseOptuna):
         return score
 
     def fit_model(self, trial, eval_metric, cat_features=None, seed=None, n_rounds=1500, **dataset):
-        params = {'verbose': -1}
-        params['lambda_l1'] = trial.suggest_loguniform('lambda_l1', 1e-8, 5)
-        params['lambda_l2'] = trial.suggest_loguniform('lambda_l2', 1e-8, 5)
-        params['path_smooth'] = trial.suggest_loguniform('path_smooth', 1e-8, 1e-3)
-        params['num_leaves'] = trial.suggest_int('num_leaves', 15, 90)
-        params['min_data_in_leaf'] = trial.suggest_int('min_data_in_leaf', 10, 100)
-        params['learning_rate'] = trial.suggest_loguniform('learning_rate', 1e-5, 1e-1)
-        params['max_bin'] = trial.suggest_int('max_bin', 100, 255)
-        params['feature_fraction'] = trial.suggest_uniform('feature_fraction', 0.5, 0.9)
-        params['bagging_fraction'] = trial.suggest_uniform('bagging_fraction', 0.5, 0.9)
-        params['n_estimators'] = trial.suggest_int('n_estimators', 100, 3000, step=50)
-        params['bagging_freq'] = trial.suggest_int('bagging_freq', 0, 15)
-        params['min_child_weight'] = trial.suggest_int('min_child_weight', 1, 20)
+        params = self.param_grid.create_paramgrid(trial)
 
         dtrain = lgb.Dataset(dataset['x_train'],
                              label=dataset['y_train'],
@@ -257,7 +245,7 @@ class LGBMClassifierOptuna(LGBMBaseOptuna):
         return err
 
 
-class LGBMRegressorOptuna(LGBMBaseOptuna):
+class LGBMRegressorOptuna(BaseOptuna):
 
     def get_feval(self, metrics):
         def feval(y_pred, dataset):
@@ -329,5 +317,78 @@ class LGBMRegressorOptuna(LGBMBaseOptuna):
                         )
 
         preds = gbm.predict(dataset['x_test'])
+        err = self.evaluate(dataset['y_test'], preds, eval_metric)
+        return err
+
+################ XGBoost ################
+
+import xgboost as xgb
+
+class XGBRegressorOptuna(BaseOptuna):
+
+    def __init__(self, use_gpu=False):
+        super().__init__()
+        params = {'nthread': OptunaParam('nthread', fixed_value=-1, param_type='fixed'),
+                  'lambda': OptunaParam('lambda', low=1e-5, high=5, param_type='loguniform'),
+                  'alpha': OptunaParam('alpha', low=1e-5, high=5, param_type='loguniform'),
+                  'colsample_bytree': OptunaParam('colsample_bytree', low=0.5, high=0.9, param_type='uniform'),
+                  'subsample': OptunaParam('subsample', low=0.5, high=0.9, param_type='uniform'),
+                  'learning_rate': OptunaParam('learning_rate', low=1e-5, high=1e-1, param_type='loguniform'),
+                  'n_estimators': OptunaParam('n_estimators', low=100, high=5000, param_type='int'),
+                  'max_depth': OptunaParam('max_depth', low=6, high=30, param_type='int'),
+                  'min_child_weight': OptunaParam('min_child_weight', low=1, high=300, param_type='int'),
+                  'verbosity': OptunaParam('verbosity', fixed_value=0, param_type='fixed'),
+                  }
+        if use_gpu:
+            params['tree_method'] = OptunaParam('tree_method', fixed_value='gpu_hist', param_type='fixed')
+        self.param_grid.set_paramgrid(params)
+
+    def evaluate(self, y_true, y_pred, metrics):
+        if metrics == 'mse':
+            score = mean_squared_error(y_true, y_pred)
+        elif metrics == 'mae':
+            score = mean_absolute_error(y_true, y_pred)
+        elif metrics == 'rmse':
+            score = np.sqrt(mean_squared_error(y_true, y_pred))
+        elif metrics == 'rmsle':
+            score = np.sqrt(mean_squared_log_error(y_true, y_pred))
+        else:
+            score = mean_squared_error(y_true, y_pred)
+        return score
+
+    def fit_model(self, trial, eval_metric, cat_features=None, seed=None, n_rounds=1500, **dataset):
+        params = self.param_grid.create_paramgrid(trial)
+
+        dtrain = xgb.DMatrix(dataset['x_train'],
+                             label=dataset['y_train'])
+
+        dtest = xgb.DMatrix(dataset['x_test'],
+                            label=dataset['y_test'])
+
+        if eval_metric == 'mae':
+            params['objective'] = 'reg:squarederror'
+            params['eval_metric'] = 'mae'
+        elif eval_metric == 'mse':
+            params['objective'] = 'reg:squarederror'
+            params['eval_metric'] = 'rmse'
+        elif eval_metric == 'rmse':
+            params['objective'] = 'reg:squarederror'
+            params['eval_metric'] = 'rmse'
+        elif eval_metric == 'rmsle':
+            params['objective'] = 'reg:squaredlogerror'
+            params['eval_metric'] = 'rmsle'
+        else:
+            params['objective'] = 'reg:squarederror'
+            params['eval_metric'] = 'rmse'
+
+            # add pruning callback
+
+        gbm = xgb.train(params, dtrain=dtrain,
+                        evals=[(dtrain, 'train'), (dtest, 'eval')],
+                        early_stopping_rounds=30,
+                        verbose_eval=0
+                        )
+
+        preds = gbm.predict(dtest)
         err = self.evaluate(dataset['y_test'], preds, eval_metric)
         return err
