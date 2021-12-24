@@ -74,6 +74,12 @@ class OptunaParamGrid():
     def get_param(self, name):
         return self.params[name]
 
+    def remove_param(self, name):
+        self.params.pop(name)
+
+    def set_paramgrid(self, param_grid):
+        self.params = param_grid
+
     def print_params(self):
         for k, v in self.params.items():
             print(v)
