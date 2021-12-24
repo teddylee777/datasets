@@ -392,3 +392,76 @@ class XGBRegressorOptuna(BaseOptuna):
         preds = gbm.predict(dtest)
         err = self.evaluate(dataset['y_test'], preds, eval_metric)
         return err
+
+
+class XGBClassifierOptuna(BaseOptuna):
+
+    def __init__(self, use_gpu=False):
+        super().__init__()
+        params = {'nthread': OptunaParam('nthread', fixed_value=-1, param_type='fixed'),
+                  'lambda': OptunaParam('lambda', low=1e-5, high=5, param_type='loguniform'),
+                  'alpha': OptunaParam('alpha', low=1e-5, high=5, param_type='loguniform'),
+                  'colsample_bytree': OptunaParam('colsample_bytree', low=0.5, high=0.9, param_type='uniform'),
+                  'subsample': OptunaParam('subsample', low=0.5, high=0.9, param_type='uniform'),
+                  'learning_rate': OptunaParam('learning_rate', low=1e-5, high=1e-1, param_type='loguniform'),
+                  'n_estimators': OptunaParam('n_estimators', low=100, high=5000, param_type='int'),
+                  'max_depth': OptunaParam('max_depth', low=6, high=30, param_type='int'),
+                  'min_child_weight': OptunaParam('min_child_weight', low=1, high=300, param_type='int'),
+                  'verbosity': OptunaParam('verbosity', fixed_value=0, param_type='fixed'),
+                  }
+        if use_gpu:
+            params['tree_method'] = OptunaParam('tree_method', fixed_value='gpu_hist', param_type='fixed')
+        self.param_grid.set_paramgrid(params)
+
+    def evaluate(self, y_true, y_pred, num_classes, metrics, average='weighted'):
+        if num_classes < 3:
+            y_hat = np.where(y_pred < 0.5, 0, 1)
+            avg = 'binary'
+        else:
+            y_hat = y_pred
+            avg = average
+
+        if metrics == 'logloss':
+            score = log_loss(y_true, y_pred)
+        else:
+            if metrics == 'f1':
+                score = f1_score(y_true, y_hat, average=avg)
+            elif metrics == 'accuracy':
+                score = accuracy_score(y_true, y_hat)
+            elif metrics == 'precision':
+                score = precision_score(y_true, y_hat, average=avg)
+            elif metrics == 'recall':
+                score = recall_score(y_true, y_hat, average=avg)
+            else:
+                score = accuracy_score(y_true, y_hat)
+
+        return score
+
+    def fit_model(self, trial, eval_metric, cat_features=None, seed=None, n_rounds=1500, **dataset):
+        params = self.param_grid.create_paramgrid(trial)
+
+        dtrain = xgb.DMatrix(dataset['x_train'],
+                             label=dataset['y_train'])
+
+        dtest = xgb.DMatrix(dataset['x_test'],
+                            label=dataset['y_test'])
+
+        num_classes = np.unique(dataset['y_train']).shape[0]
+
+        if num_classes < 3:
+            params['objective'] = 'binary:logistic'
+            params['eval_metric'] = 'logloss'
+        else:
+            params['objective'] = 'multi:softmax'  # Multi-class
+            params['metric'] = 'mlogloss'  # metric for multi-class
+            params['num_class'] = num_classes
+
+        gbm = xgb.train(params, dtrain=dtrain,
+                        evals=[(dtrain, 'train'), (dtest, 'eval')],
+                        early_stopping_rounds=30,
+                        verbose_eval=0
+                        )
+
+        preds = gbm.predict(dtest)
+        err = self.evaluate(dataset['y_test'], preds, num_classes, eval_metric, average='weighted')
+        return err
