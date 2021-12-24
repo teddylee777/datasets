@@ -107,7 +107,7 @@ class BaseOptuna():
     def print_params(self):
         self.param_grid.print_params()
 
-    def objective_func(self, trial, eval_metric='accuracy', cat_features=None, cv=5, seed=123, n_rounds=1500,
+    def objective_func(self, trial, eval_metric='accuracy', cat_features=None, cv=5, seed=None, n_rounds=1500,
                        **datasets):
         kfold = KFold(n_splits=cv, shuffle=True, random_state=seed)
 
@@ -232,17 +232,15 @@ class LGBMClassifierOptuna(BaseOptuna):
             params['metric'] = 'multi_logloss'  # metric for multi-class
             params['num_class'] = num_classes
 
-        # add pruning callback
-        pruning_callback = optuna.integration.LightGBMPruningCallback(trial, 'score', valid_name='valid_1')
+        params['random_state'] = seed
 
         feval = self.get_feval(num_classes, eval_metric)
-        print(f'feval:{eval_metric}')
+
         gbm = lgb.train(params, dtrain,
                         early_stopping_rounds=30,
                         num_boost_round=n_rounds,
                         feval=feval,
                         valid_sets=[dtrain, dtest],
-                        #                         callbacks=[pruning_callback],
                         verbose_eval=-1,
                         )
 
@@ -308,17 +306,14 @@ class LGBMRegressorOptuna(BaseOptuna):
             params['objective'] = 'regression'
             params['metric'] = 'l2'
 
-            # add pruning callback
-        pruning_callback = optuna.integration.LightGBMPruningCallback(trial, 'score', valid_name='valid_1')
+        params['random_state'] = seed
 
         feval = self.get_feval(eval_metric)
-        print(f'feval:{eval_metric}')
         gbm = lgb.train(params, dtrain,
                         early_stopping_rounds=30,
                         num_boost_round=n_rounds,
                         feval=feval,
                         valid_sets=[dtrain, dtest],
-                        #                         callbacks=[pruning_callback],
                         verbose_eval=-1,
                         )
 
@@ -387,7 +382,7 @@ class XGBRegressorOptuna(BaseOptuna):
             params['objective'] = 'reg:squarederror'
             params['eval_metric'] = 'rmse'
 
-            # add pruning callback
+        params['random_state'] = seed
 
         gbm = xgb.train(params, dtrain=dtrain,
                         evals=[(dtrain, 'train'), (dtest, 'eval')],
@@ -461,6 +456,8 @@ class XGBClassifierOptuna(BaseOptuna):
             params['objective'] = 'multi:softmax'  # Multi-class
             params['metric'] = 'mlogloss'  # metric for multi-class
             params['num_class'] = num_classes
+
+        params['random_state'] = seed
 
         gbm = xgb.train(params, dtrain=dtrain,
                         evals=[(dtrain, 'train'), (dtest, 'eval')],
