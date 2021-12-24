@@ -2,14 +2,14 @@ from setuptools import setup, find_packages
 
 setup(
     name='teddynote',
-    version='0.0.8',
+    version='0.1.0',
     description='datasets and tutorial package made and maintained by TeddyNote',
     author='teddylee777',
     author_email='teddylee777@gmail.com',
     url='https://github.com/teddylee777/datasets',
-    install_requires=['tqdm', 'pandas', 'scikit-learn'],
+    install_requires=['tqdm', 'pandas', 'scikit-learn', 'lightgbm', 'optuna'],
     packages=find_packages(exclude=[]),
-    keywords=['teddynote', 'teddylee777', 'python datasets', 'python tutorial', 'machine learning', 'deep learning'],
+    keywords=['teddynote', 'teddylee777', 'python datasets', 'python tutorial', 'machine learning', 'deep learning', 'optuna'],
     python_requires='>=3',
     package_data={},
     zip_safe=False,
