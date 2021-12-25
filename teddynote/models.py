@@ -135,7 +135,7 @@ class BaseOptuna():
 
         return np.mean(errors)
 
-    def optimize(self, x, y, cat_features=None, eval_metric='f1', cv=5, seed=None, n_rounds=3000, n_trials=100):
+    def optimize(self, x, y, test_data=None, cat_features=None, eval_metric='f1', cv=5, seed=None, n_rounds=3000, n_trials=100):
         if eval_metric in ['f1', 'accuracy', 'precision', 'recall']:
             direction = 'maximize'
         else:
@@ -149,7 +149,27 @@ class BaseOptuna():
 
         self.study.optimize(
             lambda trial: self.objective_func(trial, eval_metric, cat_features, cv=cv, seed=seed, n_rounds=n_rounds,
-                                              **dataset), n_trials=n_trials)
+                                             **dataset), n_trials=n_trials)
+
+        if test_data is not None:
+            predictions = self.predict(dataset['x'], dataset['y'], test_data)
+            return self.study.best_trial.params, predictions
+        else:
+            return self.study.best_trial.params, None
+
+    def predict(self, x, y, test_data):
+        raise NotImplementedError("predict 메소드를 구현하여야 합니다")
+
+    def visualize(self):
+        # 하이퍼파라미터별 중요도를 확인할 수 있는 그래프
+        display(optuna.visualization.plot_param_importances(self.study))
+
+        # 하이퍼파라미터 최적화 과정을 확인
+        display(optuna.visualization.plot_optimization_history(self.study))
+
+        return self.study.trials_dataframe().sort_values(by='value', ascending=False)
+
+    def get_best_params(self):
         return self.study.best_trial.params
 
 
@@ -252,6 +272,13 @@ class LGBMClassifierOptuna(BaseOptuna):
         err = self.evaluate(dataset['y_test'], preds, num_classes, eval_metric, average='weighted')
         return err
 
+    def predict(self, x, y, test_data):
+        model = lgb.LGBMClassifier(**self.get_best_params())
+        model.fit(x, y)
+        preds = model.predict(test_data)
+        return preds
+
+
 
 class LGBMRegressorOptuna(BaseOptuna):
 
@@ -324,6 +351,12 @@ class LGBMRegressorOptuna(BaseOptuna):
         preds = gbm.predict(dataset['x_test'])
         err = self.evaluate(dataset['y_test'], preds, eval_metric)
         return err
+
+    def predict(self, x, y, test_data):
+        model = lgb.LGBMRegressor(**self.get_best_params())
+        model.fit(x, y)
+        preds = model.predict(test_data)
+        return preds
 
 ################ XGBoost ################
 
@@ -402,6 +435,12 @@ class XGBClassifierOptuna(BaseOptuna):
         err = self.evaluate(dataset['y_test'], preds, num_classes, eval_metric, average='weighted')
         return err
 
+    def predict(self, x, y, test_data):
+        model = xgb.XGBClassifier(**self.get_best_params())
+        model.fit(x, y)
+        preds = model.predict(test_data)
+        return preds
+
 
 class XGBRegressorOptuna(BaseOptuna):
 
@@ -472,6 +511,12 @@ class XGBRegressorOptuna(BaseOptuna):
         preds = gbm.predict(dtest)
         err = self.evaluate(dataset['y_test'], preds, eval_metric)
         return err
+
+    def predict(self, x, y, test_data):
+        model = xgb.XGBRegressor(**self.get_best_params())
+        model.fit(x, y)
+        preds = model.predict(test_data)
+        return preds
 
 
 ################ CatBoost ################
@@ -546,6 +591,12 @@ class CatBoostClassifierOptuna(BaseOptuna):
         err = self.evaluate(dataset['y_test'], preds, num_classes, eval_metric, average='weighted')
         return err
 
+    def predict(self, x, y, test_data):
+        model = cb.CatBoostClassifier(**self.get_best_params())
+        model.fit(x, y)
+        preds = model.predict(test_data)
+        return preds
+
 
 class CatBoostRegressorOptuna(BaseOptuna):
 
@@ -613,3 +664,10 @@ class CatBoostRegressorOptuna(BaseOptuna):
         preds = gbm.predict(dataset['x_test'])
         err = self.evaluate(dataset['y_test'], preds, eval_metric)
         return err
+
+    def predict(self, x, y, test_data):
+        model = cb.CatBoostRegressor(**self.get_best_params())
+        model.fit(x, y)
+        preds = model.predict(test_data)
+        return preds
+
