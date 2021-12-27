@@ -7,6 +7,7 @@ import catboost as cb
 
 import warnings
 import numpy as np
+import os
 
 from sklearn.model_selection import KFold, train_test_split
 from sklearn.metrics import mean_squared_log_error, mean_absolute_error, mean_squared_error
@@ -171,11 +172,17 @@ class BaseOptuna():
     def get_best_params(self):
         return self.study.best_trial.params
 
+    def save(self, preds, score):
+        raise NotImplementedError("predict 메소드를 구현하여야 합니다")
 
 ################ LGBM ################
 
 
 class LGBMClassifierOptuna(BaseOptuna):
+
+    def __init__(self, use_gpu=False, save_dir='models'):
+        super().__init__()
+        self.save_dir = save_dir
 
     def get_feval(self, num_classes, metrics, average='weighted'):
         def feval(y_pred, dataset):
@@ -269,18 +276,32 @@ class LGBMClassifierOptuna(BaseOptuna):
 
         preds = gbm.predict(dataset['x_test'])
         err = self.evaluate(dataset['y_test'], preds, num_classes, eval_metric, average='weighted')
+        print(f'metric type: {eval_metric}, score: {err:.5f}')
         return err
 
     def predict(self, x, y, test_data):
         x_train, x_test, y_train, y_test = train_test_split(x, y, stratify=y)
         model = lgb.LGBMClassifier(**self.get_best_params())
         model.fit(x_train, y_train, eval_set=[(x_test, y_test)], verbose=0, early_stopping_rounds=30)
+        score = model.score(x_test, y_test)
         preds = model.predict(test_data)
+        self.save(preds, score)
         return preds
+
+    def save(self, preds, score):
+        if not os.path.exists(self.save_dir):
+            os.mkdir(self.save_dir)
+        filename = os.path.join(self.save_dir, f'LGBMClassifier-{score:.5f}.npy')
+        print(f'saving model...{filename}')
+        np.save(filename, preds)
 
 
 
 class LGBMRegressorOptuna(BaseOptuna):
+
+    def __init__(self, use_gpu=False, save_dir='models'):
+        super().__init__()
+        self.save_dir = save_dir
 
     def get_feval(self, metrics):
         def feval(y_pred, dataset):
@@ -350,20 +371,30 @@ class LGBMRegressorOptuna(BaseOptuna):
 
         preds = gbm.predict(dataset['x_test'])
         err = self.evaluate(dataset['y_test'], preds, eval_metric)
+        print(f'error type: {eval_metric}, error: {err:.5f}')
         return err
 
     def predict(self, x, y, test_data):
         x_train, x_test, y_train, y_test = train_test_split(x, y)
         model = lgb.LGBMRegressor(**self.get_best_params())
         model.fit(x_train, y_train, eval_set=[(x_test, y_test)], verbose=0, early_stopping_rounds=30)
+        score = model.score(x_test, y_test)
         preds = model.predict(test_data)
+        self.save(preds, score)
         return preds
+
+    def save(self, preds, score):
+        if not os.path.exists(self.save_dir):
+            os.mkdir(self.save_dir)
+        filename = os.path.join(self.save_dir, f'LGBMRegressor-{score:.5f}.npy')
+        print(f'saving model...{filename}')
+        np.save(filename, preds)
 
 ################ XGBoost ################
 
 class XGBClassifierOptuna(BaseOptuna):
 
-    def __init__(self, use_gpu=False):
+    def __init__(self, use_gpu=False, save_dir='models'):
         super().__init__()
         params = {'nthread': OptunaParam('nthread', fixed_value=-1, param_type='fixed'),
                   'lambda': OptunaParam('lambda', low=1e-5, high=5, param_type='loguniform'),
@@ -379,6 +410,8 @@ class XGBClassifierOptuna(BaseOptuna):
         if use_gpu:
             params['tree_method'] = OptunaParam('tree_method', fixed_value='gpu_hist', param_type='fixed')
         self.param_grid.set_paramgrid(params)
+        self.save_dir = save_dir
+
 
     def evaluate(self, y_true, y_pred, num_classes, metrics, average='weighted'):
         if num_classes < 3:
@@ -441,13 +474,22 @@ class XGBClassifierOptuna(BaseOptuna):
         x_train, x_test, y_train, y_test = train_test_split(x, y, stratify=y)
         model = xgb.XGBClassifier(**self.get_best_params())
         model.fit(x_train, y_train, eval_set=[(x_test, y_test)], verbose=0, early_stopping_rounds=30)
+        score = model.score(x_test, y_test)
         preds = model.predict(test_data)
+        self.save(preds, score)
         return preds
+
+    def save(self, preds, score):
+        if not os.path.exists(self.save_dir):
+            os.mkdir(self.save_dir)
+        filename = os.path.join(self.save_dir, f'XGBClassifier-{score:.5f}.npy')
+        print(f'saving model...{filename}')
+        np.save(filename, preds)
 
 
 class XGBRegressorOptuna(BaseOptuna):
 
-    def __init__(self, use_gpu=False):
+    def __init__(self, use_gpu=False, save_dir='models'):
         super().__init__()
         params = {'nthread': OptunaParam('nthread', fixed_value=-1, param_type='fixed'),
                   'lambda': OptunaParam('lambda', low=1e-5, high=5, param_type='loguniform'),
@@ -463,6 +505,7 @@ class XGBRegressorOptuna(BaseOptuna):
         if use_gpu:
             params['tree_method'] = OptunaParam('tree_method', fixed_value='gpu_hist', param_type='fixed')
         self.param_grid.set_paramgrid(params)
+        self.save_dir = save_dir
 
     def evaluate(self, y_true, y_pred, metrics):
         if metrics == 'mse':
@@ -520,15 +563,24 @@ class XGBRegressorOptuna(BaseOptuna):
         x_train, x_test, y_train, y_test = train_test_split(x, y)
         model = xgb.XGBRegressor(**self.get_best_params())
         model.fit(x_train, y_train, eval_set=[(x_test, y_test)], verbose=0, early_stopping_rounds=30)
+        score = model.score(x_test, y_test)
         preds = model.predict(test_data)
+        self.save(preds, score)
         return preds
+
+    def save(self, preds, score):
+        if not os.path.exists(self.save_dir):
+            os.mkdir(self.save_dir)
+        filename = os.path.join(self.save_dir, f'XGBRegressor-{score:.5f}.npy')
+        print(f'saving model...{filename}')
+        np.save(filename, preds)
 
 
 ################ CatBoost ################
 
 class CatBoostClassifierOptuna(BaseOptuna):
 
-    def __init__(self, use_gpu=False):
+    def __init__(self, use_gpu=False, save_dir='models'):
         super().__init__()
         params = {'bootstrap_type': OptunaParam('bootstrap_type', categorical_value=['Bayesian', 'Bernoulli', 'MVS'], param_type='categorical'),
                   'boosting_type': OptunaParam('boosting_type', categorical_value=['Ordered', 'Plain'], param_type='categorical'),
@@ -547,6 +599,7 @@ class CatBoostClassifierOptuna(BaseOptuna):
             params['task_type'] = OptunaParam('task_type', fixed_value='GPU', param_type='fixed')
 
         self.param_grid.set_paramgrid(params)
+        self.save_dir = save_dir
 
     def evaluate(self, y_true, y_pred, num_classes, metrics, average='weighted'):
         if num_classes < 3:
@@ -627,6 +680,7 @@ class CatBoostRegressorOptuna(BaseOptuna):
             params['task_type'] = OptunaParam('task_type', fixed_value='GPU', param_type='fixed')
 
         self.param_grid.set_paramgrid(params)
+        self.save_dir = save_dir
 
     def evaluate(self, y_true, y_pred, metrics):
         if metrics == 'mse':
@@ -681,6 +735,22 @@ class CatBoostRegressorOptuna(BaseOptuna):
         x_train, x_test, y_train, y_test = train_test_split(x, y)
         model = cb.CatBoostRegressor(**self.get_best_params())
         model.fit(x_train, y_train, eval_set=[(x_test, y_test)], verbose=0, early_stopping_rounds=30)
+        score = model.score(x_test, y_test)
         preds = model.predict(test_data)
+        self.save(preds, score)
         return preds
 
+    def save(self, preds, score):
+        if not os.path.exists(self.save_dir):
+            os.mkdir(self.save_dir)
+        filename = os.path.join(self.save_dir, f'CatBoostRegressor-{score:.5f}.npy')
+        print(f'saving model...{filename}')
+        np.save(filename, preds)
+
+
+def load_prediction_from_file(filename):
+    ret = np.load(filename)
+    return ret
+
+def list_saved_models(dir='models'):
+    return sorted(os.listdir(dir))
