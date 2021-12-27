@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='teddynote',
-    version='0.1.6',
+    version='0.1.7',
     description='datasets and tutorial package made and maintained by TeddyNote',
     author='teddylee777',
     author_email='teddylee777@gmail.com',
