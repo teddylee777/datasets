@@ -434,6 +434,7 @@ class XGBClassifierOptuna(BaseOptuna):
 
         preds = gbm.predict(dtest)
         err = self.evaluate(dataset['y_test'], preds, num_classes, eval_metric, average='weighted')
+        print(f'metric type: {eval_metric}, score: {err:.5f}')
         return err
 
     def predict(self, x, y, test_data):
@@ -512,6 +513,7 @@ class XGBRegressorOptuna(BaseOptuna):
 
         preds = gbm.predict(dtest)
         err = self.evaluate(dataset['y_test'], preds, eval_metric)
+        print(f'error type: {eval_metric}, error: {err:.5f}')
         return err
 
     def predict(self, x, y, test_data):
@@ -532,11 +534,12 @@ class CatBoostClassifierOptuna(BaseOptuna):
                   'boosting_type': OptunaParam('boosting_type', categorical_value=['Ordered', 'Plain'], param_type='categorical'),
                   'od_type': OptunaParam('od_type', categorical_value=['IncToDec', 'Iter'], param_type='categorical'),
                   'colsample_bylevel': OptunaParam('colsample_bylevel', low=0.01, high=0.1, param_type='uniform'),
-                  'l2_leaf_reg': OptunaParam('l2_leaf_reg', low=1.0, high=5.5, param_type='uniform'),
+                  'l2_leaf_reg': OptunaParam('l2_leaf_reg', low=1e-8, high=10, param_type='loguniform'),
                   'learning_rate': OptunaParam('learning_rate', low=1e-2, high=5e-1, param_type='loguniform'),
                   'iterations': OptunaParam('iterations', low=100, high=2000, param_type='int'),
                   'min_child_samples': OptunaParam('min_child_samples', low=1, high=32, param_type='int'),
                   'depth': OptunaParam('depth', low=2, high=12, param_type='int'),
+                  'one_hot_max_size': OptunaParam('one_hot_max_size', fixed_value=1024, param_type='fixed'),
                   'logging_level': OptunaParam('logging_level', fixed_value='Silent', param_type='fixed'),
                   }
 
@@ -592,6 +595,7 @@ class CatBoostClassifierOptuna(BaseOptuna):
 
         preds = gbm.predict(dataset['x_test'])
         err = self.evaluate(dataset['y_test'], preds, num_classes, eval_metric, average='weighted')
+        print(f'metric type: {eval_metric}, score: {err:.5f}')
         return err
 
     def predict(self, x, y, test_data):
@@ -604,17 +608,18 @@ class CatBoostClassifierOptuna(BaseOptuna):
 
 class CatBoostRegressorOptuna(BaseOptuna):
 
-    def __init__(self, use_gpu=False):
+    def __init__(self, use_gpu=False, save_dir='models'):
         super().__init__()
         params = {'bootstrap_type': OptunaParam('bootstrap_type', categorical_value=['Bayesian', 'Bernoulli', 'MVS'], param_type='categorical'),
                   'boosting_type': OptunaParam('boosting_type', categorical_value=['Ordered', 'Plain'], param_type='categorical'),
                   'od_type': OptunaParam('od_type', categorical_value=['IncToDec', 'Iter'], param_type='categorical'),
                   'colsample_bylevel': OptunaParam('colsample_bylevel', low=0.01, high=0.1, param_type='uniform'),
-                  'l2_leaf_reg': OptunaParam('l2_leaf_reg', low=1.0, high=5.5, param_type='uniform'),
+                  'l2_leaf_reg': OptunaParam('l2_leaf_reg', low=1e-8, high=10, param_type='loguniform'),
                   'learning_rate': OptunaParam('learning_rate', low=1e-2, high=5e-1, param_type='loguniform'),
                   'iterations': OptunaParam('iterations', low=100, high=2000, param_type='int'),
                   'min_child_samples': OptunaParam('min_child_samples', low=1, high=32, param_type='int'),
                   'depth': OptunaParam('depth', low=2, high=12, param_type='int'),
+                  'one_hot_max_size': OptunaParam('one_hot_max_size', fixed_value=1024, param_type='fixed'),
                   'logging_level': OptunaParam('logging_level', fixed_value='Silent', param_type='fixed'),
                   }
 
@@ -640,16 +645,19 @@ class CatBoostRegressorOptuna(BaseOptuna):
         params = self.param_grid.create_paramgrid(trial)
 
         if params["bootstrap_type"] == "Bayesian":
-            params["bagging_temperature"] = trial.suggest_uniform("bagging_temperature", 0.1, 50)
+            params["bagging_temperature"] = trial.suggest_uniform("bagging_temperature", 0, 10)
         elif params["bootstrap_type"] == "Bernoulli":
             params["subsample"] = trial.suggest_uniform("subsample", 0.5, 0.9)
 
         if eval_metric == 'mae':
             params['objective'] = 'MAE'
+            params['eval_metric'] = 'MAE'
         elif eval_metric == 'mse':
             params['objective'] = 'RMSE'
+            params['eval_metric'] = 'RMSE'
         elif eval_metric == 'rmse':
             params['objective'] = 'RMSE'
+            params['eval_metric'] = 'RMSE'
         elif eval_metric == 'rmsle':
             params['objective'] = 'msle'
         elif eval_metric == 'msle':
@@ -666,6 +674,7 @@ class CatBoostRegressorOptuna(BaseOptuna):
 
         preds = gbm.predict(dataset['x_test'])
         err = self.evaluate(dataset['y_test'], preds, eval_metric)
+        print(f'error type: {eval_metric}, error: {err:.5f}')
         return err
 
     def predict(self, x, y, test_data):
