@@ -141,6 +141,8 @@ class BaseOptuna():
         else:
             direction = 'minimize'
 
+        self.eval_matric = eval_metric
+
         self.study = optuna.create_study(direction=direction)
         dataset = {
             'x': x,
@@ -283,7 +285,7 @@ class LGBMClassifierOptuna(BaseOptuna):
         x_train, x_test, y_train, y_test = train_test_split(x, y, stratify=y)
         model = lgb.LGBMClassifier(**self.get_best_params())
         model.fit(x_train, y_train, eval_set=[(x_test, y_test)], verbose=0, early_stopping_rounds=30)
-        score = model.score(x_test, y_test)
+        score = self.study.best_value
         preds = model.predict(test_data)
         self.save(preds, score)
         return preds
@@ -378,7 +380,7 @@ class LGBMRegressorOptuna(BaseOptuna):
         x_train, x_test, y_train, y_test = train_test_split(x, y)
         model = lgb.LGBMRegressor(**self.get_best_params())
         model.fit(x_train, y_train, eval_set=[(x_test, y_test)], verbose=0, early_stopping_rounds=30)
-        score = model.score(x_test, y_test)
+        score = self.study.best_value
         preds = model.predict(test_data)
         self.save(preds, score)
         return preds
@@ -474,7 +476,7 @@ class XGBClassifierOptuna(BaseOptuna):
         x_train, x_test, y_train, y_test = train_test_split(x, y, stratify=y)
         model = xgb.XGBClassifier(**self.get_best_params())
         model.fit(x_train, y_train, eval_set=[(x_test, y_test)], verbose=0, early_stopping_rounds=30)
-        score = model.score(x_test, y_test)
+        score = self.study.best_value
         preds = model.predict(test_data)
         self.save(preds, score)
         return preds
@@ -563,7 +565,7 @@ class XGBRegressorOptuna(BaseOptuna):
         x_train, x_test, y_train, y_test = train_test_split(x, y)
         model = xgb.XGBRegressor(**self.get_best_params())
         model.fit(x_train, y_train, eval_set=[(x_test, y_test)], verbose=0, early_stopping_rounds=30)
-        score = model.score(x_test, y_test)
+        score = self.study.best_value
         preds = model.predict(test_data)
         self.save(preds, score)
         return preds
@@ -655,7 +657,9 @@ class CatBoostClassifierOptuna(BaseOptuna):
         x_train, x_test, y_train, y_test = train_test_split(x, y, stratify=y)
         model = cb.CatBoostClassifier(**self.get_best_params())
         model.fit(x_train, y_train, eval_set=[(x_test, y_test)], verbose=0, early_stopping_rounds=30)
+        score = self.study.best_value
         preds = model.predict(test_data)
+        self.save(preds, score)
         return preds
 
 
@@ -735,7 +739,7 @@ class CatBoostRegressorOptuna(BaseOptuna):
         x_train, x_test, y_train, y_test = train_test_split(x, y)
         model = cb.CatBoostRegressor(**self.get_best_params())
         model.fit(x_train, y_train, eval_set=[(x_test, y_test)], verbose=0, early_stopping_rounds=30)
-        score = model.score(x_test, y_test)
+        score = self.study.best_value
         preds = model.predict(test_data)
         self.save(preds, score)
         return preds
@@ -752,5 +756,5 @@ def load_prediction_from_file(filename):
     ret = np.load(filename)
     return ret
 
-def list_saved_models(dir='models'):
-    return sorted(os.listdir(dir))
+def list_saved_models(save_dir='models'):
+    return sorted(os.listdir(save_dir))
