@@ -175,7 +175,7 @@ class BaseOptuna():
         return self.study.best_trial.params
 
     def save(self, preds, score):
-        raise NotImplementedError("predict 메소드를 구현하여야 합니다")
+        raise NotImplementedError("save 메소드를 구현하여야 합니다")
 
 ################ LGBM ################
 
@@ -661,6 +661,13 @@ class CatBoostClassifierOptuna(BaseOptuna):
         preds = model.predict(test_data)
         self.save(preds, score)
         return preds
+
+    def save(self, preds, score):
+        if not os.path.exists(self.save_dir):
+            os.mkdir(self.save_dir)
+        filename = os.path.join(self.save_dir, f'CatBoostClassifier-{score:.5f}.npy')
+        print(f'saving model...{filename}')
+        np.save(filename, preds)
 
 
 class CatBoostRegressorOptuna(BaseOptuna):
